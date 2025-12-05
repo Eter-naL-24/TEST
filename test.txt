@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>24小时便利店 - 状态监测</title>
+    <style>
+        :root {
+            --brand-orange: #ff7f00;
+            --brand-green: #008a4b;
+            --brand-red: #e60012;
+            --bg-color: #f4f4f4;
+            --card-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .store-container {
+            width: 100%;
+            max-width: 480px; /* 模拟手机宽度 */
+            background: var(--card-bg);
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 顶部招牌 */
+        .store-header {
+            background: linear-gradient(to right, var(--brand-green) 33%, var(--brand-red) 33%, var(--brand-red) 66%, var(--brand-orange) 66%);
+            height: 12px;
+            width: 100%;
+        }
+
+        .header-title {
+            text-align: center;
+            padding: 20px;
+            background: #fff;
+            border-bottom: 2px dashed #ddd;
+        }
+
+        .header-title h1 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: #333;
+            letter-spacing: 2px;
+        }
+
+        .digital-clock {
+            font-family: 'Courier New', Courier, monospace;
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        /* 控制台区域 */
+        .control-panel {
+            padding: 20px;
+            text-align: center;
+            background-color: #fff;
+        }
+
+        .name-badge {
+            border: 2px solid var(--brand-green);
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .name-badge::before {
+            content: "STAFF";
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--brand-green);
+            color: white;
+            font-size: 0.6rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .name-input {
+            border: none;
+            font-size: 1.2rem;
+            text-align: center;
+            width: 120px;
+            outline: none;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .toggle-btn {
+            background: var(--brand-orange);
+            color: white;
+            border: none;
+            padding: 12px 40px;
+            font-size: 1rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            font-weight: bold;
+        }
+
+        .toggle-btn.offline {
+            background: #999;
+            box-shadow: none;
+        }
+
+        .toggle-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* 状态展示区 */
+        .aisle-section {
+            flex: 1;
+            padding: 20px;
+            background: #fafafa;
+        }
+
+        .aisle-title {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .aisle-title::before {
+            content: "";
+            display: inline-block;
+            width: 4px;
+            height: 16px;
+            background: var(--brand-green);
+            margin-right: 8px;
+        }
+
+        .member-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 15px;
+        }
+
+        .member-card {
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #eee;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .member-card.online {
+            border-bottom: 3px solid var(--brand-green);
+        }
+
+        .member-card.offline {
+            border-bottom: 3px solid #ccc;
+            opacity: 0.8; /* 降低不透明度，非完全变灰 */
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            background: #eee;
+            border-radius: 50%;
+            margin: 0 auto 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .member-name {
+            font-size: 0.8rem;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+        
+        .member-duration {
+            font-size: 0.7rem;
+            color: var(--brand-orange);
+            font-weight: bold;
+        }
+        .offline .member-duration {
+            color: #666;
+            font-weight: normal;
+        }
+        .offline .member-duration::before {
+            content: "本次: ";
+            font-size: 0.6rem;
+            color: #999;
+        }
+
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #ccc;
+            border-radius: 50%;
+            display: inline-block;
+            margin-top: 5px;
+        }
+
+        .online .status-dot {
+            background: var(--brand-green);
+            box-shadow: 0 0 5px var(--brand-green);
+        }
+
+        /* 门铃动画提示 */
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            transition: transform 0.5s ease;
+            z-index: 100;
+        }
+        
+        .notification.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="notification" id="notifyBar">欢迎光临!</div>
+
+    <div class="store-container">
+        <div class="store-header"></div>
+
+        <div class="header-title">
+            <h1>🏪 24H便利店</h1>
+            <div class="digital-clock" id="clock">00:00:00</div>
+        </div>
+
+        <div class="control-panel">
+            <div class="name-badge">
+                <input type="text" id="username" class="name-input" value="店员小王" placeholder="输入名字">
+            </div>
+            <br>
+            <button id="toggleStatusBtn" class="toggle-btn" onclick="toggleStatus()">
+                打卡上班 (上线)
+            </button>
+        </div>
+
+        <div class="aisle-section">
+            <div class="aisle-title">当前店内 (在线成员)</div>
+            <div class="member-grid" id="onlineList">
+                </div>
+        </div>
+
+        <div class="aisle-section" style="background: #fff; border-top: 1px solid #eee;">
+            <div class="aisle-title">已离店 (下线成员)</div>
+            <div class="member-grid" id="offlineList">
+                </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 核心数据结构和逻辑 ---
+
+        // 成员头像列表
+        const AVATARS = ["👤", "👔", "🦉", "🧢", "🐱"];
+
+        // 设置一个随机头像
+        function setRandomAvatar(member) {
+            const randomIndex = Math.floor(Math.random() * AVATARS.length);
+            member.avatar = AVATARS[randomIndex];
+        }
+
+        // 成员数据：只保留店员小王 (ID 1) 和店长 (ID 2)
+        let members = [
+            // 我 (店员小王): 初始离线，时长清零
+            { id: 1, name: "店员小王", avatar: "👤", online: false, durationSeconds: 0, lastOnlineTime: null }, 
+            // 店长: 初始在线，头像固定
+            { id: 2, name: "店长", avatar: "👔", online: false, durationSeconds: 500, lastOnlineTime: Date.now() - 500000 }, 
+        ];
+
+        // 查找当前用户的引用
+        let currentUser = members.find(m => m.id === 1); 
+
+
+        // 辅助函数：格式化秒数为 H:M:S
+        function formatDuration(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+        
+        // 更新所有在线成员的在线时长 (本次计时)
+        function updateDuration() {
+            const now = Date.now();
+            
+            members.forEach(member => {
+                // 仅对在线且有上次上线时间的成员更新时长
+                if (member.online && member.lastOnlineTime) {
+                    member.durationSeconds = Math.floor((now - member.lastOnlineTime) / 1000);
+                }
+            });
+            renderMembers();
+        }
+
+
+        // 切换状态主逻辑
+        function toggleStatus() {
+            const userIndex = members.findIndex(m => m.id === currentUser.id);
+            if (userIndex === -1) return; 
+
+            const btn = document.getElementById('toggleStatusBtn');
+            const now = Date.now();
+
+            // 切换在线状态
+            currentUser.online = !currentUser.online;
+            members[userIndex].online = currentUser.online;
+
+            if (currentUser.online) {
+                // *** 上线逻辑 ***
+                btn.textContent = "打卡下班 (下线)";
+                btn.classList.remove('offline');
+                btn.style.backgroundColor = "#e60012"; 
+                showNotification(`叮咚~ ${currentUser.name} 开始营业了！`);
+                
+                // 随机设置头像（针对当前用户，店长头像固定）
+                setRandomAvatar(currentUser); 
+                
+                currentUser.lastOnlineTime = now;
+                members[userIndex].lastOnlineTime = now;
+                members[userIndex].durationSeconds = 0; // 重置本次时长
+
+            } else {
+                // *** 下线逻辑 ***
+                btn.textContent = "打卡上班 (上线)";
+                btn.classList.add('offline');
+                btn.style.backgroundColor = ""; 
+                showNotification(`再见~ ${currentUser.name} 离店休息了。`);
+
+                // 结算本次在线时长
+                if (currentUser.lastOnlineTime) {
+                    const currentSessionDuration = Math.floor((now - currentUser.lastOnlineTime) / 1000);
+                    members[userIndex].durationSeconds = currentSessionDuration; 
+                }
+                currentUser.lastOnlineTime = null;
+                members[userIndex].lastOnlineTime = null;
+            }
+            renderMembers();
+        }
+
+        // 渲染列表
+        function renderMembers() {
+            const onlineContainer = document.getElementById('onlineList');
+            const offlineContainer = document.getElementById('offlineList');
+            
+            onlineContainer.innerHTML = '';
+            offlineContainer.innerHTML = '';
+
+            // 确保当前用户名与输入框同步
+            currentUser.name = document.getElementById('username').value;
+
+            // 排序：在线的在前面；离线的在前面
+            const sortedMembers = [...members].sort((a, b) => {
+                if (a.online !== b.online) {
+                    return a.online ? -1 : 1; 
+                }
+                return a.id - b.id; 
+            });
+
+            sortedMembers.forEach(member => {
+                const card = document.createElement('div');
+                card.className = `member-card ${member.online ? 'online' : 'offline'}`;
+                
+                const durationDisplay = formatDuration(member.durationSeconds);
+                const isMeClass = member.id === currentUser.id ? ' (我)' : '';
+
+                card.innerHTML = `
+                    <div class="avatar">${member.avatar}</div>
+                    <div class="member-name">${member.name}${isMeClass}</div>
+                    <div class="member-duration">${durationDisplay}</div>
+                    <div class="status-dot"></div>
+                `;
+
+                if (member.online) {
+                    onlineContainer.appendChild(card);
+                } else {
+                    offlineContainer.appendChild(card);
+                }
+            });
+        }
+
+        // 更新时钟
+        function updateClock() {
+            const now = new Date();
+            document.getElementById('clock').textContent = now.toLocaleTimeString('zh-CN', { hour12: false });
+        }
+
+        // 显示顶部通知
+        function showNotification(msg) {
+            const bar = document.getElementById('notifyBar');
+            bar.textContent = msg;
+            bar.classList.add('show');
+            setTimeout(() => {
+                bar.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 初始化函数
+        function init() {
+            updateClock();
+            // 每秒更新时钟和在线时长
+            setInterval(updateClock, 1000);
+            setInterval(updateDuration, 1000); 
+            
+            renderMembers(); 
+            
+            // 绑定名字输入事件
+            document.getElementById('username').addEventListener('input', function(e) {
+                currentUser.name = e.target.value; 
+                renderMembers();
+            });
+        }
+
+        // 启动
+        init();
+
+    </script>
+</body>
+</html>
